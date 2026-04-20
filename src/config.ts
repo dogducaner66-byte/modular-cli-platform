@@ -109,8 +109,8 @@ export async function loadCliConfig(projectRoot = process.cwd()): Promise<IResol
 
   return {
     builtInCommandDirectory: resolveBuiltInCommandDirectory(projectRoot),
-    configPath,
     pluginModulePaths: pluginEntries.map((plugin) => path.resolve(projectRoot, plugin)),
-    projectRoot
+    projectRoot,
+    ...(configPath ? { configPath } : {})
   };
 }

@@ -21,11 +21,11 @@ npm run dev -- info
 npm run dev -- doctor
 
 npm run build
-node dist/index.js list
-node dist/index.js help version
-node dist/index.js version
-node dist/index.js info
-node dist/index.js doctor
+node dist/cli.js list
+node dist/cli.js help version
+node dist/cli.js version
+node dist/cli.js info
+node dist/cli.js doctor
 ```
 
 ## Final Command Surface
@@ -93,12 +93,12 @@ The package also exports `registry`, `loader`, `config`, and `output` subpaths s
 
 ```bash
 npm run lint
-npm test -- tests/types.test.ts tests/config.test.ts tests/loader.test.ts tests/cli.test.ts tests/commands/version.test.ts
+npm test -- tests/types.test.ts tests/config.test.ts tests/loader.test.ts tests/registry.test.ts tests/output.test.ts tests/cli.test.ts tests/commands/version.test.ts tests/commands/list.test.ts tests/commands/help.test.ts
 npm run build
 npm pack --dry-run
 ```
 
-That targeted test set is sufficient for this change because it covers the new shared contracts (`tests/types.test.ts`), configuration parsing (`tests/config.test.ts`), module discovery and duplicate handling (`tests/loader.test.ts`), the CLI-facing command surface (`tests/cli.test.ts`), and a representative built-in command execution path (`tests/commands/version.test.ts`).
+That targeted test set is sufficient for this change because it covers the shared contracts (`tests/types.test.ts` and `tests/registry.test.ts`), configuration parsing (`tests/config.test.ts`), module discovery and duplicate handling (`tests/loader.test.ts`), terminal rendering (`tests/output.test.ts`), the CLI-facing command surface (`tests/cli.test.ts`), and the built-in command behaviors plus negative paths (`tests/commands/version.test.ts`, `tests/commands/list.test.ts`, and `tests/commands/help.test.ts`).
 
 ## Packaging
 

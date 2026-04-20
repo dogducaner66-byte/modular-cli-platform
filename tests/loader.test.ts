@@ -1,20 +1,29 @@
-import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import test from "node:test";
-import { loadCommandsFromDirectory, loadRegistry } from "../src/loader.js";
+import {
+  loadCommandsFromDirectory,
+  loadCommandsFromModulePaths,
+  loadRegistry
+} from "../src/loader.js";
+import { describe, expect, it } from "vitest";
 
 function createTempProject(): string {
   return mkdtempSync(path.join(os.tmpdir(), "modular-cli-loader-"));
 }
 
-function writeCommandModule(directoryPath: string, fileName: string, commandName: string): void {
+function writeCommandModule(
+  directoryPath: string,
+  fileName: string,
+  commandName: string,
+  exportName: "command" | "default" = "command"
+): void {
   mkdirSync(directoryPath, { recursive: true });
+  const exportPrefix = exportName === "default" ? "export default" : "export const command =";
   writeFileSync(
     path.join(directoryPath, fileName),
     [
-      "export const command = {",
+      `${exportPrefix} {`,
       `  metadata: { name: "${commandName}", description: "${commandName} command" },`,
       "  execute() {}",
       "};"
@@ -22,81 +31,115 @@ function writeCommandModule(directoryPath: string, fileName: string, commandName
   );
 }
 
-test("loadCommandsFromDirectory loads modules in deterministic filename order", async (t) => {
-  const projectRoot = createTempProject();
-  const commandDirectory = path.join(projectRoot, "src", "commands");
-  t.after(() => rmSync(projectRoot, { force: true, recursive: true }));
+describe("loader", () => {
+  it("loads modules in deterministic filename order", async () => {
+    const projectRoot = createTempProject();
+    const commandDirectory = path.join(projectRoot, "src", "commands");
 
-  writeCommandModule(commandDirectory, "b-second.mjs", "second");
-  writeCommandModule(commandDirectory, "a-first.mjs", "first");
+    try {
+      writeCommandModule(commandDirectory, "b-second.mjs", "second");
+      writeCommandModule(commandDirectory, "a-first.mjs", "first");
 
-  const catalog = await loadCommandsFromDirectory(commandDirectory, "builtin");
+      const catalog = await loadCommandsFromDirectory(commandDirectory, "builtin");
 
-  assert.deepEqual(
-    catalog.map((entry) => entry.command.metadata.name),
-    ["first", "second"]
-  );
-});
+      expect(catalog.map((entry) => entry.command.metadata.name)).toEqual(["first", "second"]);
+    } finally {
+      rmSync(projectRoot, { force: true, recursive: true });
+    }
+  });
 
-test("loadCommandsFromDirectory rejects malformed command exports", async (t) => {
-  const projectRoot = createTempProject();
-  const commandDirectory = path.join(projectRoot, "src", "commands");
-  t.after(() => rmSync(projectRoot, { force: true, recursive: true }));
+  it("loads default exports and ignores unsupported files", async () => {
+    const projectRoot = createTempProject();
+    const commandDirectory = path.join(projectRoot, "src", "commands");
 
-  mkdirSync(commandDirectory, { recursive: true });
-  writeFileSync(path.join(commandDirectory, "broken.mjs"), "export const nope = true;");
+    try {
+      writeCommandModule(commandDirectory, "default-export.mjs", "defaulted", "default");
+      writeFileSync(path.join(commandDirectory, "README.md"), "# ignored");
+      writeFileSync(path.join(commandDirectory, "types.d.ts"), "export {};");
 
-  await assert.rejects(
-    () => loadCommandsFromDirectory(commandDirectory, "builtin"),
-    /must export a 'command' object or default export/
-  );
-});
+      const catalog = await loadCommandsFromDirectory(commandDirectory, "builtin");
 
-test("loadCommandsFromDirectory surfaces missing directories deterministically", async (t) => {
-  const projectRoot = createTempProject();
-  t.after(() => rmSync(projectRoot, { force: true, recursive: true }));
+      expect(catalog.map((entry) => entry.command.metadata.name)).toEqual(["defaulted"]);
+    } finally {
+      rmSync(projectRoot, { force: true, recursive: true });
+    }
+  });
 
-  await assert.rejects(
-    () => loadCommandsFromDirectory(path.join(projectRoot, "src", "commands"), "builtin"),
-    /ENOENT/
-  );
-});
+  it("rejects malformed command exports", async () => {
+    const projectRoot = createTempProject();
+    const commandDirectory = path.join(projectRoot, "src", "commands");
 
-test("loadRegistry combines built-ins and configured plugin commands", async (t) => {
-  const projectRoot = createTempProject();
-  const builtInDirectory = path.join(projectRoot, "src", "commands");
-  const pluginDirectory = path.join(projectRoot, "plugins");
-  t.after(() => rmSync(projectRoot, { force: true, recursive: true }));
+    try {
+      mkdirSync(commandDirectory, { recursive: true });
+      writeFileSync(path.join(commandDirectory, "broken.mjs"), "export const nope = true;");
 
-  writeCommandModule(builtInDirectory, "help.mjs", "help");
-  writeCommandModule(pluginDirectory, "plugin.mjs", "plugin");
-  writeFileSync(
-    path.join(projectRoot, ".clirc.json"),
-    JSON.stringify({ plugins: [path.join("plugins", "plugin.mjs")] }, null, 2)
-  );
+      await expect(loadCommandsFromDirectory(commandDirectory, "builtin")).rejects.toThrow(
+        /must export a 'command' object or default export/
+      );
+    } finally {
+      rmSync(projectRoot, { force: true, recursive: true });
+    }
+  });
 
-  const registry = await loadRegistry(projectRoot);
+  it("surfaces missing directories deterministically", async () => {
+    const projectRoot = createTempProject();
 
-  assert.equal(registry.resolve("help")?.metadata.name, "help");
-  assert.equal(registry.resolve("plugin")?.metadata.name, "plugin");
-  assert.deepEqual(
-    registry.list().map((command) => command.metadata.name),
-    ["help", "plugin"]
-  );
-});
+    try {
+      await expect(
+        loadCommandsFromDirectory(path.join(projectRoot, "src", "commands"), "builtin")
+      ).rejects.toThrow(/ENOENT/);
+    } finally {
+      rmSync(projectRoot, { force: true, recursive: true });
+    }
+  });
 
-test("loadRegistry rejects duplicate names across built-ins and plugins", async (t) => {
-  const projectRoot = createTempProject();
-  const builtInDirectory = path.join(projectRoot, "src", "commands");
-  const pluginDirectory = path.join(projectRoot, "plugins");
-  t.after(() => rmSync(projectRoot, { force: true, recursive: true }));
+  it("rejects configured plugin modules that do not exist", async () => {
+    await expect(
+      loadCommandsFromModulePaths([path.join(process.cwd(), "missing-plugin.mjs")], "plugin")
+    ).rejects.toThrow(/Configured plugin module not found/);
+  });
 
-  writeCommandModule(builtInDirectory, "help.mjs", "shared");
-  writeCommandModule(pluginDirectory, "plugin.mjs", "shared");
-  writeFileSync(
-    path.join(projectRoot, ".clirc.json"),
-    JSON.stringify({ plugins: [path.join("plugins", "plugin.mjs")] }, null, 2)
-  );
+  it("combines built-ins and configured plugin commands", async () => {
+    const projectRoot = createTempProject();
+    const builtInDirectory = path.join(projectRoot, "src", "commands");
+    const pluginDirectory = path.join(projectRoot, "plugins");
 
-  await assert.rejects(() => loadRegistry(projectRoot), /Duplicate command registration for 'shared'/);
+    try {
+      writeCommandModule(builtInDirectory, "help.mjs", "help");
+      writeCommandModule(pluginDirectory, "plugin.mjs", "plugin");
+      writeFileSync(
+        path.join(projectRoot, ".clirc.json"),
+        JSON.stringify({ plugins: [path.join("plugins", "plugin.mjs")] }, null, 2)
+      );
+
+      const registry = await loadRegistry(projectRoot);
+
+      expect(registry.resolve("help")?.metadata.name).toBe("help");
+      expect(registry.resolve("plugin")?.metadata.name).toBe("plugin");
+      expect(registry.list().map((command) => command.metadata.name)).toEqual(["help", "plugin"]);
+    } finally {
+      rmSync(projectRoot, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects duplicate names across built-ins and plugins", async () => {
+    const projectRoot = createTempProject();
+    const builtInDirectory = path.join(projectRoot, "src", "commands");
+    const pluginDirectory = path.join(projectRoot, "plugins");
+
+    try {
+      writeCommandModule(builtInDirectory, "help.mjs", "shared");
+      writeCommandModule(pluginDirectory, "plugin.mjs", "shared");
+      writeFileSync(
+        path.join(projectRoot, ".clirc.json"),
+        JSON.stringify({ plugins: [path.join("plugins", "plugin.mjs")] }, null, 2)
+      );
+
+      await expect(loadRegistry(projectRoot)).rejects.toThrow(
+        /Duplicate command registration for 'shared'/
+      );
+    } finally {
+      rmSync(projectRoot, { force: true, recursive: true });
+    }
+  });
 });

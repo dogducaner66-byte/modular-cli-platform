@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "description": "A modular TypeScript CLI platform with filesystem-discovered commands and plugin loading.",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/cli.js",
+  "types": "./dist/cli.d.ts",
   "bin": {
-    "modular-cli-platform": "dist/index.js"
+    "modular-cli-platform": "dist/cli.js"
   },
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/cli.d.ts",
+      "default": "./dist/cli.js"
     },
     "./config": {
       "types": "./dist/config.d.ts",
@@ -49,23 +49,30 @@
     "typescript"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "start": "node dist/index.js",
-    "dev": "node --loader ts-node/esm src/index.ts",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "node --loader ts-node/esm --test",
+    "build": "tsup --config tsup.config.ts && node scripts/add-shebang.mjs",
+    "start": "node dist/cli.js",
+    "dev": "node --import tsx src/cli.ts",
+    "lint": "eslint .",
+    "test": "vitest run",
     "pack:dry-run": "npm pack --dry-run",
-    "verify:commands": "node dist/index.js version && node dist/index.js list && node dist/index.js help doctor && node dist/index.js doctor && node dist/index.js info"
+    "verify:commands": "node dist/cli.js version && node dist/cli.js list && node dist/cli.js help doctor && node dist/cli.js doctor && node dist/cli.js info"
   },
   "dependencies": {
     "chalk": "^5.6.2",
-    "commander": "^14.0.1",
     "ora": "^9.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@types/node": "^24.7.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^16.4.0",
+    "jiti": "^2.6.1",
+    "prettier": "^3.6.2",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2",
+    "vitest": "^3.2.4"
   }
 }
