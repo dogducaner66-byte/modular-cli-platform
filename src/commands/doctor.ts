@@ -1,8 +1,7 @@
 import chalk from "chalk";
-import type { Command } from "commander";
+import { validateNoArguments } from "../core/errors.js";
 import type { IPlatformMetadata } from "../core/metadata.js";
-import { readPlatformMetadata } from "../core/metadata.js";
-import type { ICommand } from "../core/registry.js";
+import type { ICommand, ICommandContext } from "../core/registry.js";
 
 const MINIMUM_SUPPORTED_NODE_MAJOR = 20;
 
@@ -39,27 +38,26 @@ export function evaluateDoctorChecks(
 }
 
 export class DoctorCommand implements ICommand {
-  register(program: Command): void {
-    program
-      .command("doctor")
-      .description("Run runtime and metadata diagnostics")
-      .action(() => {
-        try {
-          const metadata = readPlatformMetadata();
-          const checks = evaluateDoctorChecks(metadata);
+  readonly name = "doctor";
+  readonly description = "Run runtime and metadata diagnostics";
 
-          for (const check of checks) {
-            const status = check.passed ? chalk.green("OK") : chalk.red("FAIL");
-            console.log(`${status} ${check.label}: ${check.detail}`);
-          }
+  execute(args: readonly string[], context: ICommandContext): number | void {
+    validateNoArguments(this.name, args);
 
-          if (checks.some((check) => !check.passed)) {
-            process.exitCode = 1;
-          }
-        } catch (error) {
-          console.error("Failed to run platform diagnostics.");
-          throw error;
-        }
-      });
+    try {
+      const checks = evaluateDoctorChecks(context.metadata);
+
+      for (const check of checks) {
+        const status = check.passed ? chalk.green("OK") : chalk.red("FAIL");
+        console.log(`${status} ${check.label}: ${check.detail}`);
+      }
+
+      if (checks.some((check) => !check.passed)) {
+        return 1;
+      }
+    } catch (error) {
+      console.error("Failed to run platform diagnostics.");
+      throw error;
+    }
   }
 }
