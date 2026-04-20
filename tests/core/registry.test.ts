@@ -1,85 +1,97 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Command } from "commander";
+import { HelpCommand } from "../../src/commands/help.js";
 import { InfoCommand } from "../../src/commands/info.js";
 import { VersionCommand } from "../../src/commands/version.js";
 import { CommandRegistry, type ICommand } from "../../src/core/registry.js";
 
-test("CommandRegistry registers all provided commands on the program", () => {
-  const program = new Command();
-  const registeredCommands: string[] = [];
-
+test("CommandRegistry lists commands in registration order", () => {
   const commands: readonly ICommand[] = [
     {
-      register(commandProgram) {
-        registeredCommands.push("hello");
-        commandProgram.command("hello").description("Hello command");
-      }
+      name: "hello",
+      description: "Hello command",
+      execute() {}
     },
     {
-      register(commandProgram) {
-        registeredCommands.push("goodbye");
-        commandProgram.command("goodbye").description("Goodbye command");
-      }
+      name: "goodbye",
+      description: "Goodbye command",
+      execute() {}
     }
   ];
 
   const registry = new CommandRegistry(commands);
 
-  const result = registry.register(program);
-
-  assert.equal(result, program);
-  assert.deepEqual(registeredCommands, ["hello", "goodbye"]);
   assert.deepEqual(
-    program.commands.map((command) => command.name()),
+    registry.list().map((command) => command.name),
     ["hello", "goodbye"]
   );
 });
 
-test("CommandRegistry leaves the program unchanged when no commands are provided", () => {
-  const program = new Command();
-  const registry = new CommandRegistry([]);
-
-  const result = registry.register(program);
-
-  assert.equal(result, program);
-  assert.equal(program.commands.length, 0);
-});
-
-test("CommandRegistry passes the same program instance to each command", () => {
-  const program = new Command();
-  const seenPrograms: Command[] = [];
-
+test("CommandRegistry resolves command aliases to the original command", () => {
   const registry = new CommandRegistry([
     {
-      register(commandProgram) {
-        seenPrograms.push(commandProgram);
-      }
-    },
-    {
-      register(commandProgram) {
-        seenPrograms.push(commandProgram);
-      }
+      name: "hello",
+      aliases: ["hi"],
+      description: "Hello command",
+      execute() {}
     }
   ]);
 
-  registry.register(program);
-
-  assert.deepEqual(seenPrograms, [program, program]);
+  assert.equal(registry.resolve("hello")?.name, "hello");
+  assert.equal(registry.resolve("hi")?.name, "hello");
 });
 
-test("CommandRegistry registers the built-in version and info commands", () => {
-  const program = new Command();
-  const registry = new CommandRegistry([new VersionCommand(), new InfoCommand()]);
+test("CommandRegistry returns undefined for unknown commands", () => {
+  const registry = new CommandRegistry([]);
 
-  registry.register(program);
+  assert.equal(registry.resolve("missing"), undefined);
+});
 
-  assert.deepEqual(program.commands.map((command) => command.name()), ["version", "info"]);
+test("CommandRegistry rejects duplicate command names and aliases", () => {
+  assert.throws(
+    () =>
+      new CommandRegistry([
+        {
+          name: "hello",
+          aliases: ["hi"],
+          description: "Hello command",
+          execute() {}
+        },
+        {
+          name: "hi",
+          description: "Conflicting command",
+          execute() {}
+        }
+      ]),
+    /Duplicate command registration for 'hi'/
+  );
+});
+
+test("CommandRegistry exposes the built-in command metadata", () => {
+  const registry = new CommandRegistry([new VersionCommand(), new HelpCommand(), new InfoCommand()]);
+
   assert.deepEqual(
-    program.commands.map((command) => command.description()),
+    registry.list().map((command) => ({
+      name: command.name,
+      description: command.description,
+      usage: command.usage
+    })),
     [
-      "Display the platform name and version",
-      "Display platform metadata and runtime requirements"
+      {
+        name: "version",
+        description: "Display the platform name and version",
+        usage: undefined
+      },
+      {
+        name: "help",
+        description: "Display help for a command",
+        usage: "help [command]"
+      },
+      {
+        name: "info",
+        description: "Display platform metadata and runtime requirements",
+        usage: undefined
+      }
     ]
   );
 });

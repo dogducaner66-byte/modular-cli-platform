@@ -1,21 +1,13 @@
 import chalk from "chalk";
-import type { Command } from "commander";
-import type { ICommand } from "../core/registry.js";
-import { readPlatformMetadata } from "../core/metadata.js";
+import { validateNoArguments } from "../core/errors.js";
+import type { ICommand, ICommandContext } from "../core/registry.js";
 
 export class VersionCommand implements ICommand {
-  register(program: Command): void {
-    program
-      .command("version")
-      .description("Display the platform name and version")
-      .action(() => {
-        try {
-          const metadata = readPlatformMetadata();
-          console.log(`${chalk.cyan(metadata.name)} ${chalk.green(metadata.version)}`);
-        } catch (error) {
-          console.error("Failed to display platform version.");
-          throw error;
-        }
-      });
+  readonly name = "version";
+  readonly description = "Display the platform name and version";
+
+  execute(args: readonly string[], context: ICommandContext): void {
+    validateNoArguments(this.name, args);
+    console.log(`${chalk.cyan(context.metadata.name)} ${chalk.green(context.metadata.version)}`);
   }
 }

@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { Command } from "commander";
 import { VersionCommand } from "../../src/commands/version.js";
+import { CommandRegistry } from "../../src/core/registry.js";
 
 interface IPackageJson {
   name: string;
@@ -17,7 +17,6 @@ function stripAnsi(text: string): string {
 test("VersionCommand prints the package name and version", async () => {
   const packageJsonPath = path.join(process.cwd(), "package.json");
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as IPackageJson;
-  const program = new Command();
   const output: string[] = [];
   const originalLog = console.log;
 
@@ -26,8 +25,17 @@ test("VersionCommand prints the package name and version", async () => {
   };
 
   try {
-    new VersionCommand().register(program);
-    await program.parseAsync(["version"], { from: "user" });
+    const command = new CommandRegistry([new VersionCommand()]).resolve("version");
+
+    await command?.execute([], {
+      metadata: {
+        name: packageJson.name,
+        version: packageJson.version,
+        description: "unused",
+        nodeVersion: ">=20"
+      },
+      registry: new CommandRegistry([new VersionCommand()])
+    });
   } finally {
     console.log = originalLog;
   }

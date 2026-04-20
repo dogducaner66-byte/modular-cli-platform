@@ -1,2 +1,2 @@
 import "./core/registry.test.ts";
-import "./index.test.ts";
+import "./cli.test.ts";

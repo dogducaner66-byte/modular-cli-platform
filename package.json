@@ -14,7 +14,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
     "test": "node --loader ts-node/esm --test",
-    "verify:commands": "node dist/index.js version && node dist/index.js info && node dist/index.js --help"
+    "verify:commands": "node dist/index.js version && node dist/index.js list && node dist/index.js help doctor && node dist/index.js info"
   },
   "dependencies": {
     "chalk": "^5.6.2",
