@@ -12,12 +12,16 @@ npm install
 
 ```bash
 npm run dev -- --help
+npm run dev -- --debug version
 npm run dev -- version
 npm run dev -- info
+npm run dev -- doctor
 npm run build
 node dist/index.js --help
+node dist/index.js --debug version
 node dist/index.js version
 node dist/index.js info
+node dist/index.js doctor
 ```
 
 ## Available Commands
@@ -26,18 +30,29 @@ node dist/index.js info
 | --- | --- |
 | `version` | Prints the platform name and version from `package.json`. |
 | `info` | Shows the platform name, version, description, and supported Node version with a short loading spinner. |
+| `doctor` | Runs runtime diagnostics for Node.js support plus platform name and version metadata, returning exit code `0` on success and `1` when any check fails. |
+
+## Global Options
+
+| Option | Purpose |
+| --- | --- |
+| `--debug` | Prints the full stack trace for unexpected failures instead of the user-facing error message. |
 
 ## Validation
 
 ```bash
 npm run lint
 npm run typecheck
-npm test -- tests/index.test.ts tests/core/registry.test.ts
+npm test -- tests/index.test.ts
 npm run build
 npm run verify:commands
 ```
 
-The CI workflow runs the same contract: install dependencies, lint, type-check, execute the targeted command-surface regression test, build the distributable, then smoke-test `version`, `info`, and `--help` from `dist`.
+The CI workflow runs the same contract: install dependencies, lint, type-check, execute the targeted command-surface regression test, build the distributable, then smoke-test `version`, `info`, and `--help` from `dist`. The `doctor` command is covered by the targeted CLI surface tests.
+
+## Exit Codes
+
+The CLI returns exit code `0` for successful command execution. Unhandled failures exit with code `1`, and `doctor` also exits with code `1` when any diagnostic check reports `FAIL`.
 
 ## Architecture Summary
 
