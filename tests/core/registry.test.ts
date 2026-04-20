@@ -74,8 +74,12 @@ test("CommandRegistry registers the built-in version and info commands", () => {
 
   registry.register(program);
 
+  assert.deepEqual(program.commands.map((command) => command.name()), ["version", "info"]);
   assert.deepEqual(
-    program.commands.map((command) => command.name()),
-    ["version", "info"]
+    program.commands.map((command) => command.description()),
+    [
+      "Display the platform name and version",
+      "Display platform metadata and runtime requirements"
+    ]
   );
 });

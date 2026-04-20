@@ -14,6 +14,10 @@ npm install
 npm run dev -- --help
 npm run dev -- version
 npm run dev -- info
+npm run build
+node dist/index.js --help
+node dist/index.js version
+node dist/index.js info
 ```
 
 ## Available Commands
@@ -22,6 +26,18 @@ npm run dev -- info
 | --- | --- |
 | `version` | Prints the platform name and version from `package.json`. |
 | `info` | Shows the platform name, version, description, and supported Node version with a short loading spinner. |
+
+## Validation
+
+```bash
+npm run lint
+npm run typecheck
+npm test -- tests/index.test.ts tests/core/registry.test.ts
+npm run build
+npm run verify:commands
+```
+
+The CI workflow runs the same contract: install dependencies, lint, type-check, execute the targeted command-surface regression test, build the distributable, then smoke-test `version`, `info`, and `--help` from `dist`.
 
 ## Architecture Summary
 

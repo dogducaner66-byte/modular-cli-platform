@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { createProgram } from "../src/index.js";
+import { createProgram, resolveArgv } from "../src/index.js";
 
 interface IPackageJson {
   name: string;
@@ -24,4 +24,13 @@ test("createProgram help includes the CLI name and version from package metadata
   assert.match(helpText, /-V, --version\s+output the version number/);
   assert.match(helpText, /info\s+Display platform metadata and runtime requirements/);
   assert.match(helpText, /version\s+Display the platform name and version/);
+  assert.match(helpText, /help \[command\]\s+display help for command/);
+});
+
+test("resolveArgv appends help when the CLI is invoked without a command", () => {
+  assert.deepEqual(resolveArgv(["node", "dist/index.js"]), ["node", "dist/index.js", "--help"]);
+});
+
+test("resolveArgv preserves explicit CLI arguments", () => {
+  assert.deepEqual(resolveArgv(["node", "dist/index.js", "version"]), ["node", "dist/index.js", "version"]);
 });
