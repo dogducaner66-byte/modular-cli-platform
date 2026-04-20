@@ -1,0 +1,47 @@
+{
+  "sessionId": "sess_20260420090226_f0d1a5",
+  "repo": "dogducaner66-byte/modular-cli-platform",
+  "updatedAt": "2026-04-20T14:40:17.239+03:00",
+  "currentMain": {
+    "branch": "main",
+    "headSha": "f025feec87a439054b783760023146bff4898caf"
+  },
+  "scaffoldBaseline": {
+    "status": "satisfied",
+    "reason": "PR #1 is already merged on main, but its head SHA was squashed into main as commit 15a6272c0004856d526ddfe600a41ca8565287a5. The scaffold files remain present on current main, so duplicate merge work is unnecessary and unsafe.",
+    "evidence": {
+      "pr1": {
+        "number": 1,
+        "url": "https://github.com/dogducaner66-byte/modular-cli-platform/pull/1",
+        "merged": true,
+        "mergedAt": "2026-04-20T10:19:07Z",
+        "recordedHeadSha": "2a1b421ae60e603c92fde9de0459e9d737403eb9",
+        "mainCommitSha": "15a6272c0004856d526ddfe600a41ca8565287a5",
+        "mainCommitTitle": "Initialize main branch (#1)"
+      },
+      "pr2": {
+        "number": 2,
+        "url": "https://github.com/dogducaner66-byte/modular-cli-platform/pull/2",
+        "merged": true,
+        "mergedAt": "2026-04-20T10:26:02Z",
+        "headSha": "5c3aec568358eea99b7b8f0b416c42d6eb17cd6f",
+        "mergeCommitSha": "f025feec87a439054b783760023146bff4898caf",
+        "mergeCommitTitle": "Merge pull request #2 from dogducaner66-byte/qa/cli-help-version-metadata"
+      },
+      "scaffoldFilesOnMain": [
+        "package.json",
+        "tsconfig.json",
+        "src/core/registry.ts",
+        "src/index.ts",
+        "tests/core/registry.test.ts"
+      ]
+    }
+  },
+  "closureReplay": {
+    "status": "ready",
+    "boxExpectedOutcome": "Confirm the modular CLI scaffold baseline is already merged on main and clear the stale session blocker that still expects PR #1 to be merged.",
+    "boxActualOutcome": "Verified PR #1 and PR #2 are already merged, tied PR #1 to main via commit 15a6272 and the current scaffold files, and recorded the scaffold dependency as satisfied for this session.",
+    "boxDeviation": "minor",
+    "deviationReason": "Used the merged main commit plus scaffold-file presence instead of the stale PR #1 head SHA ancestor check, because the PR was merged to main as commit 15a6272 rather than preserving the original head SHA."
+  }
+}

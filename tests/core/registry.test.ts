@@ -43,3 +43,25 @@ test("CommandRegistry leaves the program unchanged when no commands are provided
   assert.equal(result, program);
   assert.equal(program.commands.length, 0);
 });
+
+test("CommandRegistry passes the same program instance to each command", () => {
+  const program = new Command();
+  const seenPrograms: Command[] = [];
+
+  const registry = new CommandRegistry([
+    {
+      register(commandProgram) {
+        seenPrograms.push(commandProgram);
+      }
+    },
+    {
+      register(commandProgram) {
+        seenPrograms.push(commandProgram);
+      }
+    }
+  ]);
+
+  registry.register(program);
+
+  assert.deepEqual(seenPrograms, [program, program]);
+});
