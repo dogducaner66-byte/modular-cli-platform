@@ -2,14 +2,19 @@ import chalk from "chalk";
 import ora from "ora";
 import { setTimeout as delay } from "node:timers/promises";
 import { validateNoArguments } from "../core/errors.js";
-import type { ICommand, ICommandContext } from "../core/registry.js";
+import { renderPlatformMetadata } from "../output.js";
+import type { ICommand } from "../types.js";
 
-export class InfoCommand implements ICommand {
-  readonly name = "info";
-  readonly description = "Display platform metadata and runtime requirements";
+const metadata = {
+  name: "info",
+  description: "Display platform metadata and runtime requirements",
+  examples: ["modular-cli-platform info"]
+} as const;
 
-  async execute(args: readonly string[], context: ICommandContext): Promise<void> {
-    validateNoArguments(this.name, args);
+export const command: ICommand = {
+  metadata,
+  async execute(args, context): Promise<void> {
+    validateNoArguments(metadata.name, args);
 
     const spinner = ora({
       text: "Loading platform metadata...",
@@ -20,18 +25,11 @@ export class InfoCommand implements ICommand {
       await delay(120);
       spinner.succeed(chalk.green("Platform metadata loaded."));
 
-      console.log(
-        [
-          `${chalk.bold("Name:")} ${chalk.cyan(context.metadata.name)}`,
-          `${chalk.bold("Version:")} ${chalk.green(context.metadata.version)}`,
-          `${chalk.bold("Description:")} ${context.metadata.description}`,
-          `${chalk.bold("Node:")} ${context.metadata.nodeVersion}`
-        ].join("\n")
-      );
+      console.log(renderPlatformMetadata(context.metadata));
     } catch (error) {
       spinner.fail(chalk.red("Failed to load platform metadata."));
       console.error("Unable to display platform information.");
       throw error;
     }
   }
-}
+};
