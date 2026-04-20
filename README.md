@@ -36,7 +36,7 @@ node dist/index.js doctor
 
 | Option | Purpose |
 | --- | --- |
-| `--debug` | Prints the full stack trace for unexpected failures instead of the user-facing error message. |
+| `--debug` | Prints the full stack trace for unexpected failures instead of the user-facing error message, including CLI parsing failures such as unknown commands. |
 
 ## Validation
 

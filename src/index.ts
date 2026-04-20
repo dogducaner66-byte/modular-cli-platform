@@ -1,7 +1,7 @@
 import path from "node:path";
 import { inspect } from "node:util";
 import { fileURLToPath } from "node:url";
-import { Command } from "commander";
+import { Command, CommanderError } from "commander";
 import { DoctorCommand } from "./commands/doctor.js";
 import { InfoCommand } from "./commands/info.js";
 import { VersionCommand } from "./commands/version.js";
@@ -9,13 +9,22 @@ import { readPlatformMetadata } from "./core/metadata.js";
 import { CommandRegistry, type ICommand } from "./core/registry.js";
 
 const DEBUG_FLAG = "--debug";
+const COMMANDER_SUCCESS_EXIT_CODES = new Set(["commander.help", "commander.helpDisplayed", "commander.version"]);
+
+function isCommanderError(error: unknown): error is CommanderError {
+  return error instanceof CommanderError;
+}
+
+function isCommanderSuccessExit(error: unknown): error is CommanderError {
+  return isCommanderError(error) && COMMANDER_SUCCESS_EXIT_CODES.has(error.code);
+}
 
 export function handleError(error: unknown, debugEnabled: boolean): never {
   if (debugEnabled) {
     console.error(
       error instanceof Error ? (error.stack ?? error.message) : inspect(error, { depth: null })
     );
-  } else {
+  } else if (!isCommanderError(error)) {
     const message = error instanceof Error ? error.message : "An unknown error occurred.";
     console.error(message);
   }
@@ -49,10 +58,17 @@ export function createProgram(commands: readonly ICommand[] = createCommands()):
 
 export async function main(argv: readonly string[] = process.argv): Promise<void> {
   const resolvedArgv = resolveArgv(argv);
+  const program = createProgram();
+
+  program.exitOverride();
 
   try {
-    await createProgram().parseAsync(resolvedArgv);
+    await program.parseAsync(resolvedArgv);
   } catch (error) {
+    if (isCommanderSuccessExit(error)) {
+      return;
+    }
+
     handleError(error, resolvedArgv.includes(DEBUG_FLAG));
   }
 }
