@@ -16,6 +16,10 @@ function createCommands(): readonly ICommand[] {
   return [new VersionCommand(), new InfoCommand()];
 }
 
+export function resolveArgv(argv: readonly string[] = process.argv): string[] {
+  return argv.length > 2 ? [...argv] : [...argv, "--help"];
+}
+
 export function createProgram(commands: readonly ICommand[] = createCommands()): Command {
   const metadata = readPlatformMetadata();
   const program = new Command();
@@ -33,7 +37,7 @@ export function createProgram(commands: readonly ICommand[] = createCommands()):
 
 export async function main(): Promise<void> {
   try {
-    await createProgram().parseAsync(process.argv);
+    await createProgram().parseAsync(resolveArgv());
   } catch (error) {
     handleError(error);
   }

@@ -13,7 +13,8 @@
     "dev": "node --loader ts-node/esm src/index.ts",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "tsc --noEmit -p tsconfig.json",
-    "test": "node --loader ts-node/esm --test"
+    "test": "node --loader ts-node/esm --test",
+    "verify:commands": "node dist/index.js version && node dist/index.js info && node dist/index.js --help"
   },
   "dependencies": {
     "chalk": "^5.6.2",
