@@ -7,6 +7,7 @@ import { createProgram } from "../src/index.js";
 interface IPackageJson {
   name: string;
   version: string;
+  description: string;
 }
 
 test("createProgram help includes the CLI name and version from package metadata", () => {
@@ -16,6 +17,11 @@ test("createProgram help includes the CLI name and version from package metadata
   const helpText = createProgram().helpInformation();
 
   assert.match(helpText, new RegExp(`Usage: ${packageJson.name} \\[options\\]`));
-  assert.match(helpText, new RegExp(`Version ${packageJson.version}\\.`));
+  assert.match(
+    helpText,
+    new RegExp(`${packageJson.description} Version\\s+${packageJson.version}\\.`)
+  );
   assert.match(helpText, /-V, --version\s+output the version number/);
+  assert.match(helpText, /info\s+Display platform metadata and runtime requirements/);
+  assert.match(helpText, /version\s+Display the platform name and version/);
 });
