@@ -33,3 +33,13 @@ test("CommandRegistry registers all provided commands on the program", () => {
     ["hello", "goodbye"]
   );
 });
+
+test("CommandRegistry leaves the program unchanged when no commands are provided", () => {
+  const program = new Command();
+  const registry = new CommandRegistry([]);
+
+  const result = registry.register(program);
+
+  assert.equal(result, program);
+  assert.equal(program.commands.length, 0);
+});
