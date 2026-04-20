@@ -1,10 +1,39 @@
+#!/usr/bin/env node
 import { inspect } from "node:util";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { CliUsageError } from "./core/errors.js";
 import { readPlatformMetadata } from "./core/metadata.js";
 import { loadRegistry } from "./loader.js";
 import { CommandRegistry } from "./registry.js";
 import type { ICommandContext } from "./types.js";
+
+export { CliUsageError } from "./core/errors.js";
+export { loadCliConfig } from "./config.js";
+export {
+  loadCommandCatalog,
+  loadCommandsFromDirectory,
+  loadCommandsFromModulePaths,
+  loadRegistry
+} from "./loader.js";
+export {
+  renderCommandHelp,
+  renderCommandList,
+  renderGeneralHelp,
+  renderPlatformMetadata,
+  renderPlatformVersion,
+  renderStatusLine
+} from "./output.js";
+export { CommandRegistry } from "./registry.js";
+export type {
+  ICliConfig,
+  ICommand,
+  ICommandContext,
+  ICommandMetadata,
+  ICommandModule,
+  ILoadedCommand,
+  IResolvedCliConfig
+} from "./types.js";
 
 const DEBUG_FLAG = "--debug";
 const HELP_FLAGS = new Set(["-h", "--help"]);
@@ -77,7 +106,7 @@ export function parseDispatchPlan(args: readonly string[]): IDispatchPlan {
       };
     }
 
-    if (argument?.startsWith("-")) {
+    if (argument.startsWith("-")) {
       throw new CliUsageError(`error: unknown option '${argument}'`, 1);
     }
 
@@ -143,4 +172,8 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
   } catch (error) {
     process.exitCode = handleError(error, debugEnabled);
   }
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  void main();
 }
