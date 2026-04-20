@@ -1,5 +1,13 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { Command } from "commander";
 import { CommandRegistry, type ICommand } from "./core/registry.js";
+
+interface ICliMetadata {
+  name: string;
+  version: string;
+}
 
 function handleError(error: unknown): never {
   const message = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -11,22 +19,65 @@ function createCommands(): readonly ICommand[] {
   return [];
 }
 
-function main(): void {
+function getPackageJsonPath(): string {
+  return path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
+}
+
+function readCliMetadata(packageJsonPath = getPackageJsonPath()): ICliMetadata {
+  let packageJsonContent: string;
+
   try {
-    const program = new Command();
+    packageJsonContent = readFileSync(packageJsonPath, "utf8");
+  } catch (error) {
+    console.error(`Failed to read CLI metadata from ${packageJsonPath}.`);
+    throw error;
+  }
 
-    program
-      .name("modular-cli-platform")
-      .description("A modular CLI platform scaffold.")
-      .version("1.0.0");
+  let parsedPackageJson: Partial<ICliMetadata>;
 
-    const registry = new CommandRegistry(createCommands());
+  try {
+    parsedPackageJson = JSON.parse(packageJsonContent) as Partial<ICliMetadata>;
+  } catch (error) {
+    console.error(`Failed to parse CLI metadata from ${packageJsonPath}.`);
+    throw error;
+  }
 
-    registry.register(program);
-    program.parse(process.argv);
+  if (
+    typeof parsedPackageJson.name !== "string" ||
+    typeof parsedPackageJson.version !== "string"
+  ) {
+    throw new Error("package.json must include string name and version fields.");
+  }
+
+  return {
+    name: parsedPackageJson.name,
+    version: parsedPackageJson.version
+  };
+}
+
+export function createProgram(commands: readonly ICommand[] = createCommands()): Command {
+  const metadata = readCliMetadata();
+  const program = new Command();
+
+  program
+    .name(metadata.name)
+    .description(`A modular CLI platform scaffold. Version ${metadata.version}.`)
+    .version(metadata.version);
+
+  const registry = new CommandRegistry(commands);
+
+  registry.register(program);
+  return program;
+}
+
+export function main(): void {
+  try {
+    createProgram().parse(process.argv);
   } catch (error) {
     handleError(error);
   }
 }
 
-main();
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main();
+}
