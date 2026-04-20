@@ -4,10 +4,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { CliUsageError } from "../src/core/errors.js";
-import { renderGeneralHelp } from "../src/commands/help.js";
 import { handleError, parseDispatchPlan, resolveArgv } from "../src/cli.js";
-import { createRegistry } from "../src/index.js";
 import { evaluateDoctorChecks } from "../src/commands/doctor.js";
+import { loadRegistry } from "../src/loader.js";
+import { renderGeneralHelp } from "../src/output.js";
 
 interface IPackageJson {
   name: string;
@@ -33,12 +33,12 @@ function runCli(args: readonly string[]): SpawnSyncReturns<string> {
   );
 }
 
-test("renderGeneralHelp includes metadata, built-ins, and feature commands", () => {
+test("renderGeneralHelp includes metadata, built-ins, and feature commands", async () => {
   const packageJsonPath = path.join(process.cwd(), "package.json");
   const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as IPackageJson;
-  const helpText = renderGeneralHelp(createRegistry().list(), packageJson);
+  const helpText = renderGeneralHelp((await loadRegistry(process.cwd())).list(), packageJson);
 
-  assert.match(helpText, new RegExp(`Usage: ${packageJson.name} \\[options\\] \\[command\\]`));
+  assert.match(helpText, new RegExp(`Usage: ${packageJson.name} \\[options\\] <command> \\[args\\]`));
   assert.match(
     helpText,
     new RegExp(`${packageJson.description} Version ${packageJson.version.replace(".", "\\.")}\\.`)
@@ -112,7 +112,7 @@ test("default invocation renders general help to stdout and exits with code 0", 
   const output = stripAnsi(result.stdout);
 
   assert.equal(result.status, 0);
-  assert.match(output, /Usage: modular-cli-platform \[options\] \[command\]/);
+  assert.match(output, /Usage: modular-cli-platform \[options\] <command> \[args\]/);
   assert.match(output, /help \[command\]\s+Display help for a command/);
 });
 
@@ -122,11 +122,11 @@ test("list command enumerates registered commands in a stable order", () => {
 
   assert.equal(result.status, 0);
   assert.deepEqual(output, [
-    "version\tDisplay the platform name and version",
-    "list\tList the available commands",
+    "doctor\tRun runtime and metadata diagnostics",
     "help\tDisplay help for a command",
     "info\tDisplay platform metadata and runtime requirements",
-    "doctor\tRun runtime and metadata diagnostics"
+    "list\tList the available commands",
+    "version\tDisplay the platform name and version"
   ]);
 });
 

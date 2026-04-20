@@ -1,17 +1,17 @@
-import type { ICommand, ICommandContext } from "../core/registry.js";
 import { validateNoArguments } from "../core/errors.js";
+import { renderCommandList } from "../output.js";
+import type { ICommand } from "../types.js";
 
-export class ListCommand implements ICommand {
-  readonly name = "list";
-  readonly description = "List the available commands";
+const metadata = {
+  name: "list",
+  description: "List the available commands",
+  examples: ["modular-cli-platform list"]
+} as const;
 
-  execute(args: readonly string[], context: ICommandContext): void {
-    validateNoArguments(this.name, args);
-    console.log(
-      context.registry
-        .list()
-        .map((command) => `${command.name}\t${command.description}`)
-        .join("\n")
-    );
+export const command: ICommand = {
+  metadata,
+  execute(args, context): void {
+    validateNoArguments(metadata.name, args);
+    console.log(renderCommandList(context.registry.list()));
   }
-}
+};

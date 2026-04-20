@@ -1,13 +1,17 @@
-import chalk from "chalk";
 import { validateNoArguments } from "../core/errors.js";
-import type { ICommand, ICommandContext } from "../core/registry.js";
+import { renderPlatformVersion } from "../output.js";
+import type { ICommand } from "../types.js";
 
-export class VersionCommand implements ICommand {
-  readonly name = "version";
-  readonly description = "Display the platform name and version";
+const metadata = {
+  name: "version",
+  description: "Display the platform name and version",
+  examples: ["modular-cli-platform version"]
+} as const;
 
-  execute(args: readonly string[], context: ICommandContext): void {
-    validateNoArguments(this.name, args);
-    console.log(`${chalk.cyan(context.metadata.name)} ${chalk.green(context.metadata.version)}`);
+export const command: ICommand = {
+  metadata,
+  execute(args, context): void {
+    validateNoArguments(metadata.name, args);
+    console.log(renderPlatformVersion(context.metadata));
   }
-}
+};

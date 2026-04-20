@@ -1,12 +1,10 @@
 import { inspect } from "node:util";
-import { DoctorCommand } from "./commands/doctor.js";
-import { HelpCommand } from "./commands/help.js";
-import { InfoCommand } from "./commands/info.js";
-import { ListCommand } from "./commands/list.js";
-import { VersionCommand } from "./commands/version.js";
+import path from "node:path";
 import { CliUsageError } from "./core/errors.js";
 import { readPlatformMetadata } from "./core/metadata.js";
-import { CommandRegistry, type ICommand, type ICommandContext } from "./core/registry.js";
+import { loadRegistry } from "./loader.js";
+import { CommandRegistry } from "./registry.js";
+import type { ICommandContext } from "./types.js";
 
 const DEBUG_FLAG = "--debug";
 const HELP_FLAGS = new Set(["-h", "--help"]);
@@ -18,27 +16,22 @@ interface IDispatchPlan {
   readonly commandArgs: readonly string[];
 }
 
-export function createCommands(): readonly ICommand[] {
-  return [
-    new VersionCommand(),
-    new ListCommand(),
-    new HelpCommand(),
-    new InfoCommand(),
-    new DoctorCommand()
-  ];
-}
-
-export function createRegistry(commands: readonly ICommand[] = createCommands()): CommandRegistry {
-  return new CommandRegistry(commands);
+interface IDispatchOptions {
+  readonly projectRoot?: string;
+  readonly registry?: CommandRegistry;
 }
 
 export function resolveArgv(argv: readonly string[] = process.argv): readonly string[] {
   return argv.slice(2);
 }
 
-export function createContext(registry: CommandRegistry): ICommandContext {
+export function createContext(
+  registry: CommandRegistry,
+  projectRoot = process.cwd()
+): ICommandContext {
   return {
-    metadata: readPlatformMetadata(),
+    cwd: projectRoot,
+    metadata: readPlatformMetadata(path.join(projectRoot, "package.json")),
     registry
   };
 }
@@ -104,16 +97,18 @@ export function parseDispatchPlan(args: readonly string[]): IDispatchPlan {
 
 export async function dispatch(
   args: readonly string[],
-  registry = createRegistry()
+  options: IDispatchOptions = {}
 ): Promise<{ readonly debugEnabled: boolean; readonly exitCode: number }> {
   const plan = parseDispatchPlan(args);
+  const projectRoot = options.projectRoot ?? process.cwd();
+  const registry = options.registry ?? (await loadRegistry(projectRoot));
   const command = registry.resolve(plan.commandName);
 
   if (!command) {
     throw new CliUsageError(`error: unknown command '${plan.commandName}'`, 1);
   }
 
-  const context = createContext(registry);
+  const context = createContext(registry, projectRoot);
   const exitCode = (await command.execute(plan.commandArgs, context)) ?? 0;
 
   return {

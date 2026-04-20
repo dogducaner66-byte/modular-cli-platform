@@ -1,7 +1,7 @@
-import chalk from "chalk";
 import { validateNoArguments } from "../core/errors.js";
 import type { IPlatformMetadata } from "../core/metadata.js";
-import type { ICommand, ICommandContext } from "../core/registry.js";
+import { renderStatusLine } from "../output.js";
+import type { ICommand } from "../types.js";
 
 const MINIMUM_SUPPORTED_NODE_MAJOR = 20;
 
@@ -37,19 +37,22 @@ export function evaluateDoctorChecks(
   ];
 }
 
-export class DoctorCommand implements ICommand {
-  readonly name = "doctor";
-  readonly description = "Run runtime and metadata diagnostics";
+const metadata = {
+  name: "doctor",
+  description: "Run runtime and metadata diagnostics",
+  examples: ["modular-cli-platform doctor"]
+} as const;
 
-  execute(args: readonly string[], context: ICommandContext): number | void {
-    validateNoArguments(this.name, args);
+export const command: ICommand = {
+  metadata,
+  execute(args, context): number | void {
+    validateNoArguments(metadata.name, args);
 
     try {
       const checks = evaluateDoctorChecks(context.metadata);
 
       for (const check of checks) {
-        const status = check.passed ? chalk.green("OK") : chalk.red("FAIL");
-        console.log(`${status} ${check.label}: ${check.detail}`);
+        console.log(renderStatusLine(check));
       }
 
       if (checks.some((check) => !check.passed)) {
@@ -60,4 +63,4 @@ export class DoctorCommand implements ICommand {
       throw error;
     }
   }
-}
+};

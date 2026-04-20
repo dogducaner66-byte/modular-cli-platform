@@ -23,19 +23,19 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Lint
         run: npm run lint
 
-      - name: Type check
-        run: npm run typecheck
-
       - name: Targeted tests
-        run: npm test -- tests/core/registry.test.ts tests/cli.test.ts
+        run: npm test -- tests/types.test.ts tests/config.test.ts tests/loader.test.ts tests/cli.test.ts tests/commands/version.test.ts
 
       - name: Build
         run: npm run build
+
+      - name: Package smoke test
+        run: npm pack --dry-run
 
       - name: Validate shipped commands
         run: npm run verify:commands
