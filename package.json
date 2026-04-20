@@ -1,6 +1,7 @@
 {
   "name": "modular-cli-platform",
   "version": "1.0.0",
+  "description": "An extensible TypeScript CLI platform with modular command registration.",
   "private": true,
   "type": "module",
   "engines": {

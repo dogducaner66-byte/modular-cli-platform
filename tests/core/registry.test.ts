@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Command } from "commander";
+import { InfoCommand } from "../../src/commands/info.js";
+import { VersionCommand } from "../../src/commands/version.js";
 import { CommandRegistry, type ICommand } from "../../src/core/registry.js";
 
 test("CommandRegistry registers all provided commands on the program", () => {
@@ -64,4 +66,16 @@ test("CommandRegistry passes the same program instance to each command", () => {
   registry.register(program);
 
   assert.deepEqual(seenPrograms, [program, program]);
+});
+
+test("CommandRegistry registers the built-in version and info commands", () => {
+  const program = new Command();
+  const registry = new CommandRegistry([new VersionCommand(), new InfoCommand()]);
+
+  registry.register(program);
+
+  assert.deepEqual(
+    program.commands.map((command) => command.name()),
+    ["version", "info"]
+  );
 });

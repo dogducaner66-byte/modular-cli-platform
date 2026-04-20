@@ -1,13 +1,10 @@
-import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Command } from "commander";
+import { InfoCommand } from "./commands/info.js";
+import { VersionCommand } from "./commands/version.js";
+import { readPlatformMetadata } from "./core/metadata.js";
 import { CommandRegistry, type ICommand } from "./core/registry.js";
-
-interface ICliMetadata {
-  name: string;
-  version: string;
-}
 
 function handleError(error: unknown): never {
   const message = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -16,52 +13,16 @@ function handleError(error: unknown): never {
 }
 
 function createCommands(): readonly ICommand[] {
-  return [];
-}
-
-function getPackageJsonPath(): string {
-  return path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "package.json");
-}
-
-function readCliMetadata(packageJsonPath = getPackageJsonPath()): ICliMetadata {
-  let packageJsonContent: string;
-
-  try {
-    packageJsonContent = readFileSync(packageJsonPath, "utf8");
-  } catch (error) {
-    console.error(`Failed to read CLI metadata from ${packageJsonPath}.`);
-    throw error;
-  }
-
-  let parsedPackageJson: Partial<ICliMetadata>;
-
-  try {
-    parsedPackageJson = JSON.parse(packageJsonContent) as Partial<ICliMetadata>;
-  } catch (error) {
-    console.error(`Failed to parse CLI metadata from ${packageJsonPath}.`);
-    throw error;
-  }
-
-  if (
-    typeof parsedPackageJson.name !== "string" ||
-    typeof parsedPackageJson.version !== "string"
-  ) {
-    throw new Error("package.json must include string name and version fields.");
-  }
-
-  return {
-    name: parsedPackageJson.name,
-    version: parsedPackageJson.version
-  };
+  return [new VersionCommand(), new InfoCommand()];
 }
 
 export function createProgram(commands: readonly ICommand[] = createCommands()): Command {
-  const metadata = readCliMetadata();
+  const metadata = readPlatformMetadata();
   const program = new Command();
 
   program
     .name(metadata.name)
-    .description(`A modular CLI platform scaffold. Version ${metadata.version}.`)
+    .description(`${metadata.description} Version ${metadata.version}.`)
     .version(metadata.version);
 
   const registry = new CommandRegistry(commands);
@@ -70,14 +31,14 @@ export function createProgram(commands: readonly ICommand[] = createCommands()):
   return program;
 }
 
-export function main(): void {
+export async function main(): Promise<void> {
   try {
-    createProgram().parse(process.argv);
+    await createProgram().parseAsync(process.argv);
   } catch (error) {
     handleError(error);
   }
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main();
+  void main();
 }
